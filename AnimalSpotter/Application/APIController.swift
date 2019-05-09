@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 enum HTTPMethod: String {
     case get = "GET"
@@ -31,6 +32,7 @@ class APIController {
 
         var request = URLRequest(url: signUpUrl)
         request.httpMethod = HTTPMethod.post.rawValue
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let jsonEncoder = JSONEncoder()
         do {
@@ -62,6 +64,7 @@ class APIController {
         
         var request = URLRequest(url: loginUrl)
         request.httpMethod = HTTPMethod.post.rawValue
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let jsonEncoder = JSONEncoder()
         do {
@@ -108,11 +111,11 @@ class APIController {
             return
         }
         
-        guard let allAnimalsUrl = URL(string: "animals/all", relativeTo: baseUrl) else { return }
+        let allAnimalsUrl = baseUrl.appendingPathComponent("animals/all")
         
         var request = URLRequest(url: allAnimalsUrl)
         request.httpMethod = HTTPMethod.get.rawValue
-        request.addValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
+        request.addValue("Bearer \(bearer.token)", forHTTPHeaderField: "Authorization")
         
         URLSession.shared.dataTask(with: request) { (data, response, error) in
             if let response = response as? HTTPURLResponse,
@@ -143,17 +146,17 @@ class APIController {
         }.resume()
     }
     
-    func fetchAnAnimal(with name: String, completion: @escaping (Result<Animal, NetworkError>) -> Void) {
+    func fetchDetails(for animalName: String, completion: @escaping (Result<Animal, NetworkError>) -> Void) {
         guard let bearer = bearer else {
             completion(.failure(.noAuth))
             return
         }
         
-        guard let animalUrl = URL(string: "animals/\(name)", relativeTo: baseUrl) else { return }
+        let animalUrl = baseUrl.appendingPathComponent("animals/\(animalName)")
         
         var request = URLRequest(url: animalUrl)
         request.httpMethod = HTTPMethod.get.rawValue
-        request.addValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
+        request.addValue("Bearer \(bearer.token)", forHTTPHeaderField: "Authorization")
         
         URLSession.shared.dataTask(with: request) { (data, response, error) in
             if let response = response as? HTTPURLResponse,
@@ -182,6 +185,28 @@ class APIController {
                 completion(.failure(.noDecode))
                 return
             }
+        }.resume()
+    }
+    
+    func fetchImage(at urlString: String, completion: @escaping (Result<UIImage, NetworkError>) -> Void) {
+        let imageUrl = URL(string: urlString)!
+        
+        var request = URLRequest(url: imageUrl)
+        request.httpMethod = HTTPMethod.get.rawValue
+        
+        URLSession.shared.dataTask(with: request) { (data, _, error) in
+            if let _ = error {
+                completion(.failure(.otherError))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(.badData))
+                return
+            }
+            
+            let image = UIImage(data: data)!
+            completion(.success(image))
         }.resume()
     }
 }

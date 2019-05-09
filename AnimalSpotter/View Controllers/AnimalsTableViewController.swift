@@ -10,11 +10,7 @@ import UIKit
 
 class AnimalsTableViewController: UITableViewController {
     
-    private var animalNames: [String] = [] {
-        didSet {
-            tableView.reloadData()
-        }
-    }
+    private var animalNames: [String] = []
     
     let apiController = APIController()
 
@@ -25,13 +21,7 @@ class AnimalsTableViewController: UITableViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        if let _ = apiController.bearer {
-            apiController.fetchAllAnimalNames { result in
-                if let names = try? result.get() {
-                    self.animalNames = names
-                }
-            }
-        } else {
+        if apiController.bearer == nil {
             performSegue(withIdentifier: "LoginViewModalSegue", sender: self)
         }
     }
@@ -51,6 +41,18 @@ class AnimalsTableViewController: UITableViewController {
         return cell
     }
 
+    // MARK: - Actions
+    @IBAction func getAnimals(_ sender: UIBarButtonItem) {
+        apiController.fetchAllAnimalNames { result in
+            if let names = try? result.get() {
+                DispatchQueue.main.async {
+                    self.animalNames = names
+                    self.tableView.reloadData()
+                }
+            }
+        }
+    }
+    
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
